@@ -40,7 +40,7 @@ Structure of System Volume Information:
     └─ WPSettings.dat
        
 
-## Documentation on APFS
+## Documentation on Windows Deduplication
 
 - [**TBA**](url): Paper where WinDedup is presented.
 - [**Forensic analysis of deduplication file systems**](https://www.sciencedirect.com/science/article/pii/S1742287617300324)
