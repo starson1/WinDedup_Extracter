@@ -8,7 +8,7 @@ Parsing files from Deduplicated volumes. It can also recover deleted files from 
 
 ## Usage
     python windedup.py [options] imagefile
-    ex) python windedup.py -m 1 test.001
+    ex) python main.py -m 1 test.001
 Needs 
 
   1) "Raw" Image File
