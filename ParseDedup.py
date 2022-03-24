@@ -1,6 +1,5 @@
-import chunk
-import struct
-import os
+import time
+
 
 import Dedup_Structure as DS
 
@@ -19,6 +18,8 @@ class DedupAssemble:
         self.run()
 
     def run(self):
+        start = time.time()
+
         #Read $R back index
         fp = open(self.filepath,'rb')
         Record = self.read_R(fp)
@@ -44,13 +45,14 @@ class DedupAssemble:
         fp.close()
 
         #Read Stream File & Datafile --> Assemble Process
+        count = 1
         for i in rundata:
-            filename = i['FileName'].replace('\x00','')
+            filename = str(i['FileName'].replace(b'\x00',b'')).replace("b'","").replace("'","")
             outputfile = b""
             stream = self.read_Streamfile(i)
             if type(stream) == int:
                 print("ERROR READING StreamFile ERRORCODE : "+str(stream))
-            count =1
+                continue
             for j in stream:
                 data = self.read_Datafile(j)
                 if type(data) == int:
@@ -59,13 +61,23 @@ class DedupAssemble:
                 outputfile += data
                 #CUMULATIVE CHUNKSIZE CHECK!!
             if filename != "":
-                fp = open(filename,'wb')
+                fp = open("./RESULT/"+filename,'wb')
+                count +=1
             else:
-                fp = open('.CARVEDFILE'+str(count),'wb')
+                fp = open('./RESULT/CARVEDFILE'+str(count),'wb')
                 count +=1
             fp.write(outputfile)
             fp.close()
-            
+        
+        end = time.time()
+        
+        # Statistics
+        print("")
+        print("[+]Total Deduplicated File Count : " + str(len(Record)))
+        print("[+]Total Reassembled File Count : "+str(count-1))
+        print("[+]Reassemble Rate : "+str(100*(count-1)/len(Record))+"%")
+        print("[+]Elapsed Time : "+ str(end-start))
+        print("")
 
     def read_R(self,handle):
         data = handle.read()
@@ -135,7 +147,7 @@ class DedupAssemble:
         return chunk_data
     def get_Filename(self,attr):
         namelen = attr[0x50]
-        name = attr[0x5A:0x5A+namelen].decode('utf8')
+        name = attr[0x5A:]
         return name
         
 
