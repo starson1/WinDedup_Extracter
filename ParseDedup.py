@@ -1,6 +1,4 @@
 import time
-
-
 import Dedup_Structure as DS
 
 MFT_PATH = "./File/$MFT"
@@ -150,8 +148,5 @@ class DedupAssemble:
         name = attr[0x5A:]
         return name
         
-
-        
-
 if __name__ == "__main__":
     a = DedupAssemble(R_FILEPATH) 
