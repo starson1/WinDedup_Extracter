@@ -3,6 +3,7 @@ from datetime import datetime
 from sys import byteorder
 
 END_SIGNATURE = b"\xff\xff\xff\xff"
+MFT_RECORD_SIZE = 0x400
 
 def parse_MFT(data):
     ret = {}
@@ -26,7 +27,6 @@ def parse_MFT(data):
             ret[attr_name] = attr_data
         if attr_ID == b"\x30\x00\x00\x00":
             attr_name = "$FILE_NAME"
-            ret[attr_name] = attr_data
             ret[attr_name] = attr_data
         if attr_ID == b"\x40\x00\x00\x00":
             attr_name = "$OBJECT_ID"
@@ -125,13 +125,13 @@ def parse_streamheader(dat):
     ret = {}
     ret['Signature']=dat[0x00:0x08]
     ret['Hash Stream Number']=struct.unpack('<L',dat[0x08:0x0C])[0]
-    ret['SMAP size']=struct.unpack('<L',dat[0x0C:0x10])[0]
+    ret['SMAP Size']=struct.unpack('<L',dat[0x0C:0x10])[0]
     ret['Stream Hash']=dat[0x38:0x48]
     ret['SMAP Signature'] = dat[0x68:0x70]
     return ret
 def parse_streamdata(dat):
     ret = {}
-    ret['Chunk Number'] = dat[0x00:0x04]
+    ret['Chunk Number'] = int.from_bytes(dat[0x00:0x04],byteorder='little')
     ret['Data File Name'] = dat[0x04:0x08][::-1].hex() + "." + dat[0x0C:0x10][::-1].hex()+".ccc"
     ret['Data Offset'] = struct.unpack('<L',dat[0x08:0x0C])[0]
     ret['Cumulative Chunk Size'] = struct.unpack('<L',dat[0x10:0x14])[0]
@@ -154,3 +154,14 @@ def parse_R(dat):
     ret['Entry Size'] = (struct.unpack('<L',dat[0x1C:0x20])[0]) - 0x38
 
     return ret
+def parse_Record(dat):
+    ret = {}
+    ret["Reparse Tag"] = dat[0x10:0x14]
+    ret["Seq Num"] =dat[0x1A:0x1C]
+    ret["MFT Key Reference"] = dat[0x14:0x1A]
+    ret["MFT address"] =Find_MFT_Record(dat[0x14:0x18])
+
+    return ret
+
+def Find_MFT_Record(key_ref:bytes):
+        return int.from_bytes(key_ref,byteorder='little') * MFT_RECORD_SIZE
