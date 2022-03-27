@@ -1,18 +1,19 @@
 import time
 import Dedup_Structure as DS
 
-MFT_PATH = "./File/$MFT"
-RAW_IMAGE_PATH = r"F:\#My_Work\WinServer2019\dumps\Dump_1101_OtherFile Added.001"
-R_FILEPATH = "./File/$R"
-DATAFILE_PATH = "./File/00000001.00000001.ccc"
-STREAMFILE_PATH = "./File/00010000.00000001.ccc"
+import os
+
+MFT_PATH = "C:/Users/stars/Desktop/files/$MFT"
+RAW_IMAGE_PATH = "C:/Users/stars/Desktop/files/Final_Testset.001"
+R_FILEPATH = "C:/Users/stars/Desktop/files/$R"
+DATAFILE_PATH = "C:/Users/stars/Desktop/files/data/"
+STREAMFILE_PATH = "C:/Users/stars/Desktop/files/stream/"
 
 CLUSTER_SIZE= 0x200
 
 class DedupAssemble:
     def __init__(self,filepath):
         self.filepath = filepath
-        self.filename = "" ####GET FILENAME!!
         self.run()
 
     def run(self):
@@ -22,15 +23,17 @@ class DedupAssemble:
         fp = open(self.filepath,'rb')
         Record = self.read_R(fp)
         fp.close()
-
         #Get MFT information
         reparse = []
-        fp = open(".\File\$MFT",'rb')
+        fp = open(MFT_PATH,'rb')
         for rec in Record:
             if rec['Reparse Tag'] != b"\x13\x00\x00\x80":
                 print("ERROR")
                 continue
-            reparse.append(self.read_MFT_attribute(fp,rec['MFT address']))
+            try:
+                reparse.append(self.read_MFT_attribute(fp,rec['MFT address']))
+            except:
+                continue
         fp.close()
         
         #Read Run Data
@@ -39,33 +42,65 @@ class DedupAssemble:
         for i in reparse:
             tmp = self.read_DataRun(fp,i['RUN1'])
             tmp['FileName'] = i['FileName']
-            rundata.append(tmp)
-        fp.close()
-
+            rundata.append(tmp)    
+        fp.close()        
         #Read Stream File & Datafile --> Assemble Process
         count = 1
         for i in rundata:
-            filename = str(i['FileName'].replace(b'\x00',b'')).replace("b'","").replace("'","")
             outputfile = b""
-            stream = self.read_Streamfile(i)
-            if type(stream) == int:
-                print("ERROR READING StreamFile ERRORCODE : "+str(stream))
-                continue
-            for j in stream:
-                data = self.read_Datafile(j)
-                if type(data) == int:
-                    print("ERROR Reading Data File. ERRORCODE :"+str(data))
-                    continue
-                outputfile += data
-                #CUMULATIVE CHUNKSIZE CHECK!!
-            if filename != "":
-                fp = open("./RESULT/"+filename,'wb')
-                count +=1
-            else:
-                fp = open('./RESULT/CARVEDFILE'+str(count),'wb')
-                count +=1
-            fp.write(outputfile)
-            fp.close()
+            #read offset
+            offset = i['Stream file Offset']
+            #get every stream file
+            for file in os.listdir(STREAMFILE_PATH):
+                if ".ccc" not in file: continue
+                stream = self.read_Streamfile(file,i)
+                if type(stream) is int: 
+                    if stream < 0: 
+                        continue
+                cumul = 0       
+                flag = 0          
+                for j in stream:
+                    data = self.read_Datafile(j,cumul)
+                    if type(data) == int:
+                        flag = 1
+                        print("ERROR Reading Data File. ERRORCODE :"+str(data))
+                        break
+                    cumul += j['Chunk Size']
+                    outputfile += data
+                if flag ==1 : break
+                filename = i['FileName'].replace(b'\x00\x00',b'').decode('utf16')
+                if filename != "":
+                    fp = open("./RESULT/"+filename,'wb')
+                    count +=1
+                else:
+                    fp = open('./RESULT/CARVEDFILE'+str(count),'wb')
+                    count +=1
+                fp.write(outputfile)
+                fp.close()
+
+
+            #filename = str(i['FileName'].replace(b'\x00',b'')).replace("b'","").replace("'","")
+            #outputfile = b""
+            #stream = self.read_Streamfile(i)
+            #if type(stream) == int:
+            #    print("ERROR READING StreamFile ERRORCODE : "+str(stream))
+            #    continue
+            # for j in stream:
+            #     data = self.read_Datafile(j)
+            #     if type(data) == int:
+            #         print("ERROR Reading Data File. ERRORCODE :"+str(data))
+            #         continue
+            #     outputfile += data
+            #     #CUMULATIVE CHUNKSIZE CHECK!!
+
+            # if filename != "":
+            #     fp = open("./RESULT/"+filename,'wb')
+            #     count +=1
+            # else:
+            #     fp = open('./RESULT/CARVEDFILE'+str(count),'wb')
+            #     count +=1
+            # fp.write(outputfile)
+            # fp.close()
         
         end = time.time()
         
@@ -76,7 +111,6 @@ class DedupAssemble:
         print("[+]Reassemble Rate : "+str(100*(count-1)/len(Record))+"%")
         print("[+]Elapsed Time : "+ str(end-start))
         print("")
-
     def read_R(self,handle):
         data = handle.read()
         res = DS.parse_R(data)
@@ -105,8 +139,11 @@ class DedupAssemble:
         handle.seek(run[1]*0x1000)
         data = handle.read(CLUSTER_SIZE * run[0])
         return DS.parse_Dedup(data)
-    def read_Streamfile(self,record):
-        fp = open("File/"+record['Stream file name1'],'rb')
+    def read_Streamfile(self,filename,record):
+        try:
+            fp = open(STREAMFILE_PATH+filename,'rb')
+        except:
+            return -1
         fp.seek(record['Stream file Offset'])
         data = fp.read(0x70)
         stream_hdr = DS.parse_streamheader(data)
@@ -127,8 +164,8 @@ class DedupAssemble:
             stream_data.append(DS.parse_streamdata(stmd))
         
         return stream_data
-    def read_Datafile(self,stream):
-        fp = open("File/"+stream['Data File Name'],'rb')
+    def read_Datafile(self,stream,cumul):
+        fp = open(DATAFILE_PATH+stream['Data File Name'],'rb')
         fp.seek(stream['Data Offset'])
         data = fp.read(0x58)
         chunk_info = DS.parse_Datachunk(data)
@@ -137,7 +174,12 @@ class DedupAssemble:
         if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
         if chunk_info['Data Hash'] != stream['Hash']: return -2
         if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
+        #CUMULATIVE CHUNKSIZE CHECK!!
+        # if stream['Cumulative Chunk Size'] != (chunk_info['Chunk Size'] + cumul): 
+        #     print(stream['Cumulative Chunk Size'], cumul, chunk_info['Chunk Size'])
+        #     return -4
 
+        
         fp.seek(stream['Data Offset']+0x58)
         chunk_data = fp.read(chunk_info['Chunk Size'])
         fp.close()

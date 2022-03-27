@@ -1,4 +1,3 @@
-import struct
 from datetime import datetime
 from sys import byteorder
 
@@ -12,7 +11,7 @@ def parse_MFT(data):
     ret['Signature'] = data[:0x04]
     ret['Seq Num'] = data[0x10:0x12]
     ret['Offset to Attribute'] = int.from_bytes(data[0x14:0x16],byteorder='little')
-    ret['Entry Number'] = int.from_bytes(data[0x2C:0x30])
+    ret['Entry Number'] = int.from_bytes(data[0x2C:0x30],byteorder='little')
 
     attr_ID = ""
     offset = ret['Offset to Attribute']
@@ -105,14 +104,14 @@ def parse_Dedup(dat):
             break
     ret['RbRp'] = dat[i:i+0x4]
     ret['RbRp CRC'] = dat[i+0x4:i+0x8]
-    ret['RbRp Size'] = int.from_bytes(dat[i+0x8:i+0xC],byteorder='little',byteorder='little')
+    ret['RbRp Size'] = int.from_bytes(dat[i+0x8:i+0xC],byteorder='little')
     
     i +=ret['RbRp Size']
     ret['DdRp'] = dat[i:i+0x4]
     ret['DdRp CRC'] = dat[i+0x4:i+0x8]
     ret['DdRp Size'] = int.from_bytes(dat[i+0x8:i+0xC],byteorder='little')
     #ret['Stream file name1'] = (str(dat[i+0x30:i+0x34][::-1])+"."+str(dat[i+0x28:i+0x2C][::-1])).replace("bytearray(b\'","").replace(")","").replace('b','').replace("\\x","").replace('\'','')+".ccc"
-    ret['Hash Stream number1'] = int.from_bytes(dat[i+0x2C:i+0x30])
+    ret['Hash Stream number1'] = int.from_bytes(dat[i+0x2C:i+0x30],byteorder='little')
     #ret['Stream file name2'] = (str(dat[i+0x38:i+0x3C][::-1])+"."+str(dat[i+0x40:i+0x44][::-1])).replace("bytearray(b\'","").replace(")","").replace('b','').replace("\\x","").replace('\'','')+".ccc"
     ret['Hash Stream number2'] = int.from_bytes(dat[i+0x34:i+0x38],byteorder='little')
     ret['Stream file Offset'] = int.from_bytes(dat[i+0x3C:i+0x40],byteorder='little')
@@ -133,18 +132,18 @@ def parse_streamheader(dat):
     return ret
 def parse_streamdata(dat):
     ret = {}
-    ret['Chunk Number'] = int.from_bytes(dat[0x00:0x04],byteorder='little',byteorder='little')
+    ret['Chunk Number'] = int.from_bytes(dat[0x00:0x04],byteorder='little')
     ret['Data File Name'] = dat[0x04:0x08][::-1].hex() + "." + dat[0x0C:0x10][::-1].hex()+".ccc"
     ret['Data Offset'] = int.from_bytes(dat[0x08:0x0C],byteorder='little')
-    ret['Cumulative Chunk Size'] = int.from_bytes(dat[0x10:0x14])
+    ret['Cumulative Chunk Size'] = int.from_bytes(dat[0x10:0x14],byteorder='little')
     ret['Chunk Size'] = int.from_bytes(dat[0x38:0x3C],byteorder='little')
     ret['Hash'] = dat[0x18:0x38]
     return ret
 def parse_Datachunk(dat):
     ret = {}
     ret['Signature'] = dat[0x00:0x08]
-    ret['Chunk Number'] = int.from_bytes(dat[0x08:0x0C],byteorder='little',byteorder='little')
-    ret['Chunk Size'] = int.from_bytes(dat[0x0C:0x10],byteorder='little',byteorder='little')
+    ret['Chunk Number'] = int.from_bytes(dat[0x08:0x0C],byteorder='little')
+    ret['Chunk Size'] = int.from_bytes(dat[0x0C:0x10],byteorder='little')
     ret['Compression Flag'] = dat[0x0C]
     ret['Data Hash'] = dat[0x28:0x48]
 
