@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import time
 import Dedup_Structure as DS
-
+import re
 import os
 FILE_PATH = "C:/Users/stars/Desktop/files/"
 #FILE_PATH = "C:/Users/plainbit/Desktop/files/"
@@ -18,7 +18,7 @@ class DedupAssemble:
         start = time.time()
         res =self.run1(filepath)
         count = 1
-        for i in tqdm(res):
+        for i in tqdm(res,desc="Assembling Files"):
             if self.run2(i) > 0:
                 count +=1
 
@@ -180,6 +180,19 @@ class DedupAssemble:
         namelen = attr[0x50]
         name = attr[0x5A:]
         return name
-        
+    
+    def Recover_datarun(self,):
+        #find datarun siganture
+        offsets = self.search_engine(RAW_IMAGE_PATH,b"\x13\x00\x00\x80\x80\x01\x00\x00")
+        #get existing datarun offsets
+
+        #compare offsets
+
+        #get file
+    def search_engine(self,filepath,word):
+        fp = open(filepath,'rb')
+        lst = re.findall(fp.read(),)
+
+
 if __name__ == "__main__":
     a = DedupAssemble(R_FILEPATH) 
