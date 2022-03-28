@@ -2,12 +2,12 @@ import time
 import Dedup_Structure as DS
 
 import os
-
-MFT_PATH = "C:/Users/stars/Desktop/files/$MFT"
-RAW_IMAGE_PATH = "C:/Users/stars/Desktop/files/Final_Testset.001"
-R_FILEPATH = "C:/Users/stars/Desktop/files/$R"
-DATAFILE_PATH = "C:/Users/stars/Desktop/files/data/"
-STREAMFILE_PATH = "C:/Users/stars/Desktop/files/stream/"
+FILE_PATH = "C:/Users/stars/Desktop/files/"
+MFT_PATH = FILE_PATH+"$MFT"
+RAW_IMAGE_PATH = FILE_PATH+"Final_Testset.001"
+R_FILEPATH = FILE_PATH+"$R"
+DATAFILE_PATH = FILE_PATH+"data/"
+STREAMFILE_PATH = FILE_PATH+"stream/"
 
 CLUSTER_SIZE= 0x200
 
