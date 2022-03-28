@@ -1,10 +1,10 @@
-from cProfile import run
+from tqdm import tqdm
 import time
 import Dedup_Structure as DS
 
 import os
-#FILE_PATH = "C:/Users/stars/Desktop/files/"
-FILE_PATH = "C:/Users/plainbit/Desktop/files/"
+FILE_PATH = "C:/Users/stars/Desktop/files/"
+#FILE_PATH = "C:/Users/plainbit/Desktop/files/"
 MFT_PATH = FILE_PATH+"$MFT"
 RAW_IMAGE_PATH = FILE_PATH+"Final_Testset.001"
 R_FILEPATH = FILE_PATH+"$R"
@@ -18,10 +18,10 @@ class DedupAssemble:
         start = time.time()
         res =self.run1(filepath)
         count = 1
-        for i in res:
+        for i in tqdm(res):
             if self.run2(i) > 0:
                 count +=1
-            
+
         end = time.time()
         
         # Statistics
@@ -67,10 +67,15 @@ class DedupAssemble:
         outputfile = b""
         #get every stream file
         stream = self.find_StreamFile(rundata)
+        #Exceptions
+        if type(stream) == int:
+            return -1
+        stream = sorted(stream,key=lambda d:d['Cumulative Chunk Size'])
         cumul = 0       
-        flag = 0          
+        flag = 0 
+        prev_cumul = 0
         for j in stream:
-            data = self.read_Datafile(j,cumul)
+            data = self.read_Datafile(j,prev_cumul)
             if type(data) == int:
                 flag = 1
                 print("ERROR Reading Data File. ERRORCODE :"+str(data))
@@ -155,26 +160,19 @@ class DedupAssemble:
             stream_data.append(DS.parse_streamdata(stmd))
         
         return stream_data
-    def read_Datafile(self,stream,cumul):
-        print(stream)
+    def read_Datafile(self,stream,prev_cumul):
         fp = open(DATAFILE_PATH+stream['Data File Name'],'rb')
         fp.seek(stream['Data Offset'])
-        data = fp.read(0x58)
+        data = fp.read(0x48)
         chunk_info = DS.parse_Datachunk(data)
-        print(chunk_info)
-        print("")
+        
         #VALIDATION!!!        
         if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
         if chunk_info['Data Hash'] != stream['Hash']: return -2
         if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
         #CUMULATIVE CHUNKSIZE CHECK!!
-        if stream['Cumulative Chunk Size'] != (stream['Chunk Size'] + cumul): 
-            print(stream['Cumulative Chunk Size']- stream['Chunk Size'] - cumul)
-            return -4
-
-        
         fp.seek(stream['Data Offset']+0x58)
-        chunk_data = fp.read(chunk_info['Chunk Size'])
+        chunk_data = fp.read(stream['Chunk Size'])
         fp.close()
 
         return chunk_data
