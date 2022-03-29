@@ -1,3 +1,4 @@
+import statistics
 from tqdm import tqdm
 import time
 import Dedup_Structure as DS
@@ -15,6 +16,9 @@ CLUSTER_SIZE= 0x200
 
 class DedupAssemble:
     def __init__(self,filepath):
+        #self.run_all(filepath)
+        self.Recover_datarun(filepath)
+    def run_all(self,filepath):
         start = time.time()
         res =self.run1(filepath)
         count = 1
@@ -23,15 +27,17 @@ class DedupAssemble:
                 count +=1
 
         end = time.time()
-        
-        # Statistics
-        print("")
-        print("[+]Total Deduplicated File Count : " + str(len(res)))
-        print("[+]Total Reassembled File Count : "+str(count-1))
-        print("[+]Reassemble Rate : "+str(100*(count-1)/len(res))+"%")
-        print("[+]Elapsed Time : "+ str(end-start))
-        print("")
 
+        # Statistics
+        self.statistics(len(res),count,end-start)
+        
+    def statistics(self,total,count,time):
+        print("")
+        print("[+]Total Deduplicated File Count : " + str(total))
+        print("[+]Total Reassembled File Count : "+str(count-1))
+        print("[+]Reassemble(Recovery) Rate : "+str(100*(count-1)/total)+"%")
+        print("[+]Elapsed Time : "+ str(time))
+        print("")
     def run1(self,filepath):
         #Read $R back index
         fp = open(filepath,'rb')
@@ -60,7 +66,6 @@ class DedupAssemble:
         fp.close()        
             
         return rundata
-
     def run2(self,rundata):
         #Read Stream File -> Datafile --> Assemble Process
         count = 1        
@@ -181,18 +186,55 @@ class DedupAssemble:
         name = attr[0x5A:]
         return name
     
-    def Recover_datarun(self,):
+    def Recover_datarun(self,filepath):
         #find datarun siganture
-        offsets = self.search_engine(RAW_IMAGE_PATH,b"\x13\x00\x00\x80\x80\x01\x00\x00")
+        start = time.time()
+        count = 1
+
+        data = open(RAW_IMAGE_PATH,'rb').read()
+        find_datarun = []
+        while(1):
+            try:
+                offset = self.search_engine(RAW_IMAGE_PATH,b"\x13\x00\x00\x80\x80\x01\x00\x00")
+                if offset == -1 :
+                    print("Completed Searching...")
+                    break
+                size = int.from_bytes(data[offset+0x04:offset+0x08],byteorder='little')
+                find_datarun.append(DS.parse_Reparse(data[offset:offset+size])) 
+                data = data[offset:]
+            except:
+                print("Searching Error...!")
+                break
         #get existing datarun offsets
-
+        cur_datarun = self.run1(filepath)
+        for i in cur_datarun: print(i)    
         #compare offsets
-
+        unused_datarun = []
+        for i in find_datarun:
+            for j in cur_datarun:
+                if i == j:
+                    continue
+            unused_datarun.append(i)
+        
         #get file
-    def search_engine(self,filepath,word):
-        fp = open(filepath,'rb')
-        lst = re.findall(fp.read(),)
+        for i in tqdm(unused_datarun,desc='Recovering With Unused DataRuns.'):
+            if self.run2(i) > 0:
+                count +=1
+        end = time.time()
+
+        self.statistics(len(cur_datarun),count,end-start)
+
+    def search_engine(self,data,word):
+        lst = re.search(word,data)
+        if lst == None:
+            return -1
+        else:
+            return lst.start()
+    
+            
 
 
 if __name__ == "__main__":
     a = DedupAssemble(R_FILEPATH) 
+    
+    
