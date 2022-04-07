@@ -1,8 +1,6 @@
 from datetime import datetime
 from sys import byteorder
 
-from charset_normalizer import from_bytes
-
 END_SIGNATURE = b"\xff\xff\xff\xff"
 MFT_RECORD_SIZE = 0x400
 

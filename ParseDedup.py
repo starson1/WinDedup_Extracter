@@ -1,3 +1,4 @@
+import statistics
 from tqdm import tqdm
 import time
 import Dedup_Structure as DS
@@ -15,23 +16,32 @@ CLUSTER_SIZE= 0x200
 
 class DedupAssemble:
     def __init__(self,filepath):
+        #self.run_all(filepath)
+        self.Recover_datarun(filepath)
+        self.Recover_stream(filepath)
+    def recover_all(self,filepath):
+        self.Recover_datarun(filepath)
+        self.Recover_stream()
+    def run_all(self,filepath):
         start = time.time()
         res =self.run1(filepath)
+        res = self.run2(res)
         count = 1
         for i in tqdm(res,desc="Assembling Files"):
-            if self.run2(i) > 0:
+            if self.run3(i) > 0:
                 count +=1
 
         end = time.time()
-        
-        # Statistics
-        print("")
-        print("[+]Total Deduplicated File Count : " + str(len(res)))
-        print("[+]Total Reassembled File Count : "+str(count-1))
-        print("[+]Reassemble Rate : "+str(100*(count-1)/len(res))+"%")
-        print("[+]Elapsed Time : "+ str(end-start))
-        print("")
 
+        # Statistics
+        self.statistics(len(res),count,end-start)    
+    def statistics(self,total,count,time):
+        print("")
+        print("[+]Total Deduplicated File Count : " + str(total))
+        print("[+]Total Reassembled File Count : "+str(count-1))
+        print("[+]Reassemble(Recovery) Rate : "+str(100*(count-1)/total)+"%")
+        print("[+]Elapsed Time : "+ str(time))
+        print("")
     def run1(self,filepath):
         #Read $R back index
         fp = open(filepath,'rb')
@@ -60,7 +70,6 @@ class DedupAssemble:
         fp.close()        
             
         return rundata
-
     def run2(self,rundata):
         #Read Stream File -> Datafile --> Assemble Process
         count = 1        
@@ -71,9 +80,13 @@ class DedupAssemble:
         if type(stream) == int:
             return -1
         stream = sorted(stream,key=lambda d:d['Cumulative Chunk Size'])
+        filename = rundata['FileName'].replace(b'\x00\x00',b'').decode('utf16')
+        return stream,filename
+    def run3(self,stream,filename):
         cumul = 0       
         flag = 0 
         prev_cumul = 0
+        #find datafile & Concat
         for j in stream:
             print(j)
             data = self.read_Datafile(j,prev_cumul)
@@ -85,6 +98,7 @@ class DedupAssemble:
             outputfile += data
         if flag ==1 : 
             return -1
+        
         #Create File
         filename = rundata['FileName'].replace(b'\x00\x00',b'').decode('utf16')
         if filename != "":
@@ -95,8 +109,7 @@ class DedupAssemble:
             count +=1
         fp.write(outputfile)
         fp.close()
-        return 1
-    
+        return 1   
     def find_StreamFile(self,run):
         flag = 0
         for file in os.listdir(STREAMFILE_PATH):
@@ -107,7 +120,6 @@ class DedupAssemble:
                 break
         if flag ==1 : return stream
         else: return -1
-
     def read_R(self,handle):
         data = handle.read()
         res = DS.parse_R(data)
@@ -181,19 +193,99 @@ class DedupAssemble:
         namelen = attr[0x50]
         name = attr[0x5A:]
         return name
-    
-    def Recover_datarun(self,):
+    def Recover_datarun(self,filepath):
         #find datarun siganture
-        offsets = self.search_engine(RAW_IMAGE_PATH,b"\x13\x00\x00\x80\x80\x01\x00\x00")
-        #get existing datarun offsets
+        start = time.time()
+        count = 1
 
+        data = open(RAW_IMAGE_PATH,'rb').read()
+        find_datarun = []
+        while(1):
+            try:
+                offset = self.search_engine(data,b"\x13\x00\x00\x80\x80\x01\x00\x00")
+                if offset == -1 :
+                    print("Completed Searching...")
+                    break
+                size = int.from_bytes(data[offset+0x04:offset+0x08],byteorder='little')
+                find_datarun.append(DS.parse_Reparse(data[offset:offset+size])) 
+                data = data[offset:]
+            except:
+                print("Searching Error...!")
+                break
+        #get existing datarun offsets
+        cur_datarun = self.run1(filepath)
         #compare offsets
+        unused_datarun = []
+        for i in find_datarun:
+            for j in cur_datarun:
+                if i == j:
+                    continue
+            unused_datarun.append(i)
+        
+        #get file
+        stream = self.run2(unused_datarun)
+        for i in tqdm(stream,desc='Recovering With Unused DataRuns.'):
+            if self.run3(i) > 0:
+                count +=1
+        end = time.time()
+
+        self.statistics(len(cur_datarun),count,end-start)
+    def Recover_stream(self,filename):
+        #find stream header signature
+        start = time.time()
+        data = b""
+        for file in os.listdir(STREAMFILE_PATH):
+            if ".ccc" not in file: continue
+            else: 
+                data += open(file,'rb').read()
+        find_stream = []
+        while(1):
+            try:
+                offset = self.search_engine(data,b"\x43\x68\x68\x72\x01\x03\x03\x01")
+                if offset == -1 :
+                    print("Completed Searching...")
+                    break
+                size = 0x70
+                stream_hdr = DS.parse_streamheader(data[offset:offset+size])
+                num = (stream_hdr['SMAP Size'] - 8) // 0x40
+                #Read Stream Data
+                stream_data = []
+                for i in range(0,num):
+                    stmd = data[offset+size+0x40*i:offset+size+0x40*(i+1)]
+                    stream_data.append(DS.parse_streamdata(stmd))
+                data = data[offset:]
+            except:
+                print("Searching Error...!")
+                break
+        #get existing streams
+        cur_stream = self.run2(self.run1(filename))
+        #compare
+        unused_stream = []
+        for i in find_stream:
+            for j in cur_stream:
+                if i == j:
+                    continue
+            unused_stream.append(i)
 
         #get file
-    def search_engine(self,filepath,word):
-        fp = open(filepath,'rb')
-        lst = re.findall(fp.read(),)
+        count =1
+        for i in unused_stream:
+            if self.run3(i) > 0:
+                count +=1
+        end = time.time()
+
+        self.statistics(len(find_stream),count,end-start)
+    def search_engine(self,data,word):
+        lst = re.search(word,data)
+        if lst == None:
+            return -1
+        else:
+            return lst.start()
+    
+            
 
 
 if __name__ == "__main__":
     a = DedupAssemble(R_FILEPATH) 
+    
+    
