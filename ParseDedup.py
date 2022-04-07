@@ -3,8 +3,8 @@ import time
 import Dedup_Structure as DS
 import re
 import os
-FILE_PATH = "C:/Users/stars/Desktop/files/"
-#FILE_PATH = "C:/Users/plainbit/Desktop/files/"
+#FILE_PATH = "C:/Users/stars/Desktop/files/"
+FILE_PATH = "C:/Users/plainbit/Desktop/files/"
 MFT_PATH = FILE_PATH+"$MFT"
 RAW_IMAGE_PATH = FILE_PATH+"Final_Testset.001"
 R_FILEPATH = FILE_PATH+"$R"
@@ -75,6 +75,7 @@ class DedupAssemble:
         flag = 0 
         prev_cumul = 0
         for j in stream:
+            print(j)
             data = self.read_Datafile(j,prev_cumul)
             if type(data) == int:
                 flag = 1
