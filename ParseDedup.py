@@ -17,7 +17,7 @@ CLUSTER_SIZE= 0x200
 class DedupAssemble:
     def __init__(self,filepath):
         #self.run_all(filepath)
-        self.Recover_datarun(filepath)
+        #self.Recover_datarun(filepath)
         self.Recover_stream(filepath)
     def recover_all(self,filepath):
         self.Recover_datarun(filepath)
@@ -230,8 +230,20 @@ class DedupAssemble:
 
         self.statistics(len(cur_datarun),count,end-start)
     def Recover_stream(self,filename):
-        #find stream header signature
         start = time.time()
+        #Read Delete.log File
+        fp = open(FILE_PATH+'00010000.00000002.delete.log','rb')
+        res_tmp = DS.parse_DeleteLog(fp.read())
+        
+        #WhiteListing
+        whitelist =[]
+        for record in res_tmp['Records']:
+            whitelist.append((record['Hash Stream Number'],record['Hash']))
+
+        print(whitelist)
+        
+        #find stream header signature
+        
         data = b""
         for file in os.listdir(STREAMFILE_PATH):
             if ".ccc" not in file: continue
@@ -257,13 +269,14 @@ class DedupAssemble:
                 print("Searching Error...!")
                 break
         #get existing streams
-        cur_stream = self.run2(self.run1(filename))
+        cur_stream,dummy = self.run2(self.run1(filename))
         #compare
         unused_stream = []
         for i in find_stream:
             for j in cur_stream:
                 if i == j:
                     continue
+            print(i,j)
             unused_stream.append(i)
 
         #get file
@@ -271,6 +284,8 @@ class DedupAssemble:
         for i in unused_stream:
             if self.run3(i) > 0:
                 count +=1
+            for white in whitelist:
+                if white ==###### 
         end = time.time()
 
         self.statistics(len(find_stream),count,end-start)

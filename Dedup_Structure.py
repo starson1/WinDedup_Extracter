@@ -161,6 +161,24 @@ def parse_Record(dat):
     ret["MFT address"] =Find_MFT_Record(dat[0x14:0x18])
 
     return ret
+def parse_DeleteLog(dat):
+    ret = {}
+    #Header
+    ret['Signature'] = dat[0x00:0x08]
+    ret['CRC-32'] = dat[0x0C:0x10]
+    #Data
+    offset = 0x10
+    records =[]
+    while offset <= len(dat):
+        record = {}
+        record['Hash Stream Number'] = int.from_bytes(dat[offset:offset+0x04],byteorder='little')
+        record['Hash'] = dat[offset+0x04:offset+0x14]
+        if record['Hash'] != b"" and record['Hash Stream Number'] != b"":
+            records.append(record)
+        offset += 0x28
+    ret['Records'] = records
+    return ret 
+
 
 def Find_MFT_Record(key_ref:bytes):
         return int.from_bytes(key_ref,byteorder='little') * MFT_RECORD_SIZE
