@@ -1,9 +1,14 @@
-import statistics
-from tqdm import tqdm
-import time
+
 import Dedup_Structure as DS
+import e01parser as e01
+from tqdm import tqdm
+import statistics
+import pytsk3
+import pyewf
+import time
 import re
 import os
+
 #FILE_PATH = "C:/Users/stars/Desktop/files/"
 FILE_PATH = "C:/Users/plainbit/Desktop/files/"
 MFT_PATH = FILE_PATH+"$MFT"
@@ -11,14 +16,18 @@ RAW_IMAGE_PATH = FILE_PATH+"Final_Testset.001"
 R_FILEPATH = FILE_PATH+"$R"
 DATAFILE_PATH = FILE_PATH+"data/"
 STREAMFILE_PATH = FILE_PATH+"stream/"
+IMGPATH = r"C:\Users\plainbit\Desktop\TestSetImg100GB.E01"
 
 CLUSTER_SIZE= 0x200
 
 class DedupAssemble:
     def __init__(self,filepath):
-        #self.run_all(filepath)
-        self.Recover_datarun(filepath)
-        self.Recover_stream(filepath)
+        self.FSobj = e01.read_imagefile(filepath,e01.getfileType(filepath))
+
+        self.run1(filepath)
+        # self.run_all(filepath)
+        # self.Recover_datarun(filepath)
+        # self.Recover_stream(filepath)
     def recover_all(self,filepath):
         self.Recover_datarun(filepath)
         self.Recover_stream()
@@ -43,22 +52,21 @@ class DedupAssemble:
         print("[+]Elapsed Time : "+ str(time))
         print("")
     def run1(self,filepath):
+        Rdata = e01.readRFile(self.FSobj)
         #Read $R back index
-        fp = open(filepath,'rb')
-        Record = self.read_R(fp)
-        fp.close()
+        Record = self.read_R(Rdata)
+        
         #Get MFT information
         reparse = []
-        fp = open(MFT_PATH,'rb')
+        MFTdata = e01.readFile(self.FSobj,"/$MFT")
         for rec in Record:
             if rec['Reparse Tag'] != b"\x13\x00\x00\x80":
                 print("ERROR")
                 continue
             try:
-                reparse.append(self.read_MFT_attribute(fp,rec['MFT address']))
+                reparse.append(self.read_MFT_attribute(MFTdata,rec['MFT address']))
             except:
                 continue
-        fp.close()
         
         #Read Run Data
         rundata=[]
@@ -120,8 +128,7 @@ class DedupAssemble:
                 break
         if flag ==1 : return stream
         else: return -1
-    def read_R(self,handle):
-        data = handle.read()
+    def read_R(self,data):
         res = DS.parse_R(data)
         
         offset = res['Entry Offset']
@@ -286,6 +293,6 @@ class DedupAssemble:
 
 
 if __name__ == "__main__":
-    a = DedupAssemble(R_FILEPATH) 
+    a = DedupAssemble(IMGPATH) 
     
     
