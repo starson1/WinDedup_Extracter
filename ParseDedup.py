@@ -44,6 +44,7 @@ class DedupAssemble:
 
         # Statistics
         self.statistics(len(res),count,end-start)    
+        
     def statistics(self,total,count,time):
         print("")
         print("[+]Total Deduplicated File Count : " + str(total))
@@ -118,88 +119,7 @@ class DedupAssemble:
         fp.write(outputfile)
         fp.close()
         return 1   
-    def find_StreamFile(self,run):
-        flag = 0
-        for file in os.listdir(STREAMFILE_PATH):
-            if ".ccc" not in file: continue
-            else: 
-                stream = self.read_Streamfile(file,run)
-                flag =1
-                break
-        if flag ==1 : return stream
-        else: return -1
-    def read_R(self,data):
-        res = DS.parse_R(data)
-        
-        offset = res['Entry Offset']
-        Record = []
-        
-        for i in range(0,(res['Entry Size'] // 0x20 )):
-            record_data = data[offset:offset+0x20]
-            if record_data[0x10:0x14] != b"\x13\x00\x00\x80":
-                continue
-            Record.append(DS.parse_Record(record_data))
-            offset += 0x20
-        return Record   
-    def read_MFT_attribute(self,handle,offset):
-        handle.seek(offset)
-        data = handle.read(0x400)
-        mft = DS.parse_MFT(data)
-
-        res = DS.parse_Reparse(mft['$REPARSE_POINT'])
-        filename= self.get_Filename(mft['$FILE_NAME'])
-        res['FileName'] = filename
-
-        return res
-    def read_DataRun(self,handle,run):
-        handle.seek(run[1]*0x1000)
-        data = handle.read(CLUSTER_SIZE * run[0])
-        return DS.parse_Dedup(data)
-    def read_Streamfile(self,filename,record):
-        try:
-            fp = open(STREAMFILE_PATH+filename,'rb')
-        except:
-            return -1
-        fp.seek(record['Stream file Offset'])
-        data = fp.read(0x70)
-        stream_hdr = DS.parse_streamheader(data)
     
-        #VALIDATION!!!
-        if stream_hdr['Signature'] != b"\x43\x6B\x68\x72\x01\x03\x03\x01": return -1
-        if stream_hdr['Stream Hash'] != record['Hash']: return -2
-        if stream_hdr['SMAP Size'] != record['SMAP Size'] : return -3
-        if stream_hdr['Hash Stream Number'] != record['Hash Stream number1']: return -4
-
-        #Calculate SMAP
-        num = (stream_hdr['SMAP Size'] - 8) // 0x40
-        #Read Stream Data
-        stream_data = []
-        for i in range(0,num):
-            fp.seek(record['Stream file Offset']+0x70+(0x40 * i))
-            stmd = fp.read(0x40)
-            stream_data.append(DS.parse_streamdata(stmd))
-        
-        return stream_data
-    def read_Datafile(self,stream,prev_cumul):
-        fp = open(DATAFILE_PATH+stream['Data File Name'],'rb')
-        fp.seek(stream['Data Offset'])
-        data = fp.read(0x48)
-        chunk_info = DS.parse_Datachunk(data)
-        
-        #VALIDATION!!!        
-        if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
-        if chunk_info['Data Hash'] != stream['Hash']: return -2
-        if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
-        #CUMULATIVE CHUNKSIZE CHECK!!
-        fp.seek(stream['Data Offset']+0x58)
-        chunk_data = fp.read(stream['Chunk Size'])
-        fp.close()
-
-        return chunk_data
-    def get_Filename(self,attr):
-        namelen = attr[0x50]
-        name = attr[0x5A:]
-        return name
     def Recover_datarun(self,filepath):
         #find datarun siganture
         start = time.time()
@@ -297,6 +217,89 @@ class DedupAssemble:
         end = time.time()
 
         self.statistics(len(find_stream),count,end-start)
+    
+    def find_StreamFile(self,run):
+        flag = 0
+        for file in os.listdir(STREAMFILE_PATH):
+            if ".ccc" not in file: continue
+            else: 
+                stream = self.read_Streamfile(file,run)
+                flag =1
+                break
+        if flag ==1 : return stream
+        else: return -1
+    def read_R(self,data):
+        res = DS.parse_R(data)
+        
+        offset = res['Entry Offset']
+        Record = []
+        
+        for i in range(0,(res['Entry Size'] // 0x20 )):
+            record_data = data[offset:offset+0x20]
+            if record_data[0x10:0x14] != b"\x13\x00\x00\x80":
+                continue
+            Record.append(DS.parse_Record(record_data))
+            offset += 0x20
+        return Record   
+    def read_MFT_attribute(self,handle,offset):
+        handle.seek(offset)
+        data = handle.read(0x400)
+        mft = DS.parse_MFT(data)
+
+        res = DS.parse_Reparse(mft['$REPARSE_POINT'])
+        filename= self.get_Filename(mft['$FILE_NAME'])
+        res['FileName'] = filename
+
+        return res
+    def read_DataRun(self,handle,run):
+        handle.seek(run[1]*0x1000)
+        data = handle.read(CLUSTER_SIZE * run[0])
+        return DS.parse_Dedup(data)
+    def read_Streamfile(self,filename,record):
+        try:
+            fp = open(STREAMFILE_PATH+filename,'rb')
+        except:
+            return -1
+        fp.seek(record['Stream file Offset'])
+        data = fp.read(0x70)
+        stream_hdr = DS.parse_streamheader(data)
+    
+        #VALIDATION!!!
+        if stream_hdr['Signature'] != b"\x43\x6B\x68\x72\x01\x03\x03\x01": return -1
+        if stream_hdr['Stream Hash'] != record['Hash']: return -2
+        if stream_hdr['SMAP Size'] != record['SMAP Size'] : return -3
+        if stream_hdr['Hash Stream Number'] != record['Hash Stream number1']: return -4
+
+        #Calculate SMAP
+        num = (stream_hdr['SMAP Size'] - 8) // 0x40
+        #Read Stream Data
+        stream_data = []
+        for i in range(0,num):
+            fp.seek(record['Stream file Offset']+0x70+(0x40 * i))
+            stmd = fp.read(0x40)
+            stream_data.append(DS.parse_streamdata(stmd))
+        
+        return stream_data
+    def read_Datafile(self,stream,prev_cumul):
+        fp = open(DATAFILE_PATH+stream['Data File Name'],'rb')
+        fp.seek(stream['Data Offset'])
+        data = fp.read(0x48)
+        chunk_info = DS.parse_Datachunk(data)
+        
+        #VALIDATION!!!        
+        if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
+        if chunk_info['Data Hash'] != stream['Hash']: return -2
+        if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
+        #CUMULATIVE CHUNKSIZE CHECK!!
+        fp.seek(stream['Data Offset']+0x58)
+        chunk_data = fp.read(stream['Chunk Size'])
+        fp.close()
+
+        return chunk_data
+    def get_Filename(self,attr):
+        namelen = attr[0x50]
+        name = attr[0x5A:]
+        return name
     def search_engine(self,data,word):
         lst = re.search(word,data)
         if lst == None:
