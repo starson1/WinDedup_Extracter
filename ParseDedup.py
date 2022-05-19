@@ -312,7 +312,7 @@ import e01parser as e01
     
             
 def exit(msg):
-    print("  [+] "+msg)
+    print("\n  [+] "+msg)
     input("\nPress Any Key To Exit.")
     sys.exit()
 
@@ -351,20 +351,54 @@ def start():
     #check for options
     if (args.all == False) and (args.filename == None) and (args.carve == False) and (args.runlist == False) and (args.stream == False):
         parser.print_help()
-        print("")
         exit("Select More Than 1 Option...")
+    if (args.filename != None):
+        if len(args.filename) == 0:
+            exit("-f option : No Filename given...")
 
 
     return args
 
-
+class Filesystem_E01:
+    def get_R(self,handle): 
+        # input : E01 handle, 
+        # output : $R binary
+        return 1
+    def get_MFT(self,mft,size, file): 
+        # input : mft offset, mft size, filename 
+        # output : $MFT binary
+        return 1
+    def find_file_in_MFT(self,offset,size,file):
+        # input : mft offset, mft size, filename 
+        # output : $MFT binary
+        return 1
 
 class Assemble:
-    def __init__(self):
-        self.e01path = ""
-
-    def get_R():
+    def __init__(self,e01path,odir):
+        self.e01path = e01path
+        self.outPath = odir
+ 
+        self.e01handle = ""
+        
+    def assemble_all(self):
         print(1)
+    def assemble_file(self,filelist):
+        for file in filelist:
+            #find&parse file in $MFT entry
+            offset,size = Filesystem_E01.get_MFT()
+            Filesystem_E01.find_file_in_MFT(offset,size, file)
+
+            #get&parse RunList
+
+            #get&parse Stream
+
+            #get Data
+
+            #write
+            fp = open("\\".join([self.outPath,"DedupFiles",file]))
+
+
+    
 class Recover:
     def __init__(self):
         self.e01path=""
@@ -374,15 +408,27 @@ if __name__ == "__main__":
 
     #Assemble - Extract
     if args.all == True:
-        #parse all
-        print("TBD all")
-
-        #if args.filename ==True:
-        #it must be considered..! 
+        #create output dir
+        outputDir = "\\".join([args.outdir,'AllDedupFiles'])
+        if os.path.exists(outputDir)==False:
+            os.mkdir(outputDir)
         
-    elif args.filename != None:
+        #parse all
+        a = Assemble(args.input)
+        a.assemble_all()
+        
+    if args.filename != None:
+        #create output dir
+        outputDir = "\\".join([args.outdir,'DedupFiles'])
+        if os.path.exists(outputDir)==False:
+            os.mkdir(outputDir)
+        
         #parse by file
-        print("TBD filename")
+        f = Assemble(args.input,outputDir)
+        f.assemble_file(args.filename)
+
+        #write file info
+    
     #Recovery
     if args.carve == True:
         print("TBD carve")
