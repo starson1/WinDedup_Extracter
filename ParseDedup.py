@@ -415,7 +415,7 @@ class Assemble:
             cumul = 0       
             flag = 0 
             prev_cumul = 0
-            fp = open("\\".join([self.outPath,"AllDedupFiles",name]))
+            fp = open("\\".join([self.outPath,"AllDedupFiles",name]),'a')
             for _stream in _streams:
                 datafile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Data/"+_stream['Data File Name'])
                 data = FS.parse_datafile(datafile,_stream)
