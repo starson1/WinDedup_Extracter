@@ -5,9 +5,11 @@ END_SIGNATURE = b"\xff\xff\xff\xff"
 MFT_RECORD_SIZE = 0x400
 CLUSTER_SIZE = 0x200
 
-def parse_MFTattr(data):
+def parse_MFTattr(data):   
     ret = {}
-    ret['Signature'] = data[:0x04]
+    ret['Signature'] = data[:0x05]
+    if data[:0x05] != b"FILE0": 
+        return None
     ret['Seq Num'] = data[0x10:0x12]
     ret['Offset to Attribute'] = int.from_bytes(data[0x14:0x16],byteorder='little')
     ret['Entry Number'] = int.from_bytes(data[0x2C:0x30],byteorder='little')
@@ -143,7 +145,7 @@ def parse_Datachunk(dat):
     ret['Signature'] = dat[0x00:0x08]
     ret['Chunk Number'] = int.from_bytes(dat[0x08:0x0C],byteorder='little')
     ret['Chunk Size'] = int.from_bytes(dat[0x0C:0x10],byteorder='little')
-    ret['Compression Flag'] = dat[0x0C]
+    ret['Compression Flag'] = dat[0x20]
     ret['Data Hash'] = dat[0x28:0x48]
 
     return ret
@@ -179,7 +181,6 @@ def parse_DeleteLog(dat):
         offset += 0x28
     ret['Records'] = records
     return ret 
-
 def parse_MFT(handle,offset):
     mftattr = parse_MFTattr(handle.read_random(offset,0x400))
     res = parse_Reparse(mftattr['$REPARSE_POINT'])
@@ -200,17 +201,19 @@ def parse_datafile(handle,stream):
     if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
     if chunk_info['Data Hash'] != stream['Hash']: return -2
     if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
-    #CUMULATIVE CHUNKSIZE CHECK!!
-    chunk_data = handle.read_random(stream['Data Offset']+0x58,stream['Chunk Size'])
+    
+    chunk_data = handle.read_random(stream['Data Offset']+0x5C,chunk_info['Chunk Size'])
+    if chunk_info['Compression Flag'] ==2:
+        #LZ77 inflate
+        chunk_data  = lz77_inflate(chunk_data)
 
     return chunk_data
-
 def find_streamfile(handle,record):
     try:
-        data = handle.read_random(record['Stream file Offset'],0x70)
+        header = handle.read_random(record['Stream file Offset'],0x70)
     except:
         return 0,None
-    stream_hdr = parse_streamheader(data)
+    stream_hdr = parse_streamheader(header)
 
     #VALIDATION!!!
     if stream_hdr['Signature'] != b"\x43\x6B\x68\x72\x01\x03\x03\x01": return -1,None
@@ -226,7 +229,10 @@ def find_streamfile(handle,record):
         stream_data.append(parse_streamdata(stmd))
     
     return stream_data,record['FileName']
-
-
 def Find_MFT_Record(key_ref:bytes):
         return int.from_bytes(key_ref,byteorder='little') * MFT_RECORD_SIZE
+
+
+def lz77_inflate(deflated):
+    inflated = deflated
+    return inflated

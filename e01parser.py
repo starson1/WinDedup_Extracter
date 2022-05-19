@@ -77,7 +77,7 @@ class E01_handler:
             if found == 2:
                 break
         if not found:
-            print("NOT FOUND")
+            print("     [-]NOT FOUND")
             return -1
 
         offset=0 
@@ -92,11 +92,7 @@ class E01_handler:
             offset+=len(buf)
         return data
 
+    def findfile(self,filename):
+        return None
 
-# if __name__ == "__main__":
-#     #imgpath = r"C:\Users\plainbit\Desktop\TestSetImg100GB.E01"
-#     #fsobj = read_imagefile(imgpath,getfileType(imgpath))
-#     #readFile(fsobj,"/$MFT")
-#     #readRFile(imgpath,getfileType(imgpath))
-#     a=1
 
