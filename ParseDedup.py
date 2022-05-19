@@ -9,7 +9,7 @@ import sys
 import re
 import os
 
-import Dedup_Structure as DS
+import Filesystem as FS
 import e01parser as e01
 
 #FILE_PATH = "C:/Users/stars/Desktop/files/"
@@ -21,9 +21,7 @@ import e01parser as e01
 # STREAMFILE_PATH = FILE_PATH+"stream/"
 # IMGPATH = r"C:\Users\plainbit\Desktop\TestSetImg100GB.E01"
 
-# CLUSTER_SIZE= 0x200
-
-# class DedupAssemble:
+class DedupAssemble:
 #     def __init__(self,filepath):
 #         self.FSobj = e01.read_imagefile(filepath,e01.getfileType(filepath))
 
@@ -55,73 +53,73 @@ import e01parser as e01
 #         print("[+]Reassemble(Recovery) Rate : "+str(100*(count-1)/total)+"%")
 #         print("[+]Elapsed Time : "+ str(time))
 #         print("")
-#     def run1(self,filepath):
-#         Rdata = e01.readRFile(self.FSobj)
-#         #Read $R back index
-#         Record = self.read_R(Rdata)
+    def run1(self,filepath):
+        Rdata = e01.readRFile(self.FSobj)
+        #Read $R back index
+        Record = self.read_R(Rdata)
         
-#         #Get MFT information
-#         reparse = []
-#         MFTdata = e01.readFile(self.FSobj,"/$MFT")
-#         for rec in Record:
-#             if rec['Reparse Tag'] != b"\x13\x00\x00\x80":
-#                 print("ERROR")
-#                 continue
-#             try:
-#                 reparse.append(self.read_MFT_attribute(MFTdata,rec['MFT address']))
-#             except:
-#                 continue
+        #Get MFT information
+        reparse = []
+        MFTdata = e01.readFile(self.FSobj,"/$MFT")
+        for rec in Record:
+            if rec['Reparse Tag'] != b"\x13\x00\x00\x80":
+                print("ERROR")
+                continue
+            try:
+                reparse.append(self.read_MFT_attribute(MFTdata,rec['MFT address']))
+            except:
+                continue
         
-#         #Read Run Data
-#         rundata=[]
-#         fp = open(RAW_IMAGE_PATH,'rb') # open whole filesystem just for now, will be replaced with libewf
-#         for i in reparse:
-#             tmp = self.read_DataRun(fp,i['RUN1'])
-#             tmp['FileName'] = i['FileName']
-#             rundata.append(tmp)    
-#         fp.close()        
+        #Read Run Data
+        rundata=[]
+        fp = open(RAW_IMAGE_PATH,'rb') # open whole filesystem just for now, will be replaced with libewf
+        for i in reparse:
+            tmp = self.read_DataRun(fp,i['RUN1'])
+            tmp['FileName'] = i['FileName']
+            rundata.append(tmp)    
+        fp.close()        
             
-#         return rundata
-#     def run2(self,rundata):
-#         #Read Stream File -> Datafile --> Assemble Process
-#         count = 1        
-#         outputfile = b""
-#         #get every stream file
-#         stream = self.find_StreamFile(rundata)
-#         #Exceptions
-#         if type(stream) == int:
-#             return -1
-#         stream = sorted(stream,key=lambda d:d['Cumulative Chunk Size'])
-#         filename = rundata['FileName'].replace(b'\x00\x00',b'').decode('utf16')
-#         return stream,filename
-#     def run3(self,stream,filename):
-#         cumul = 0       
-#         flag = 0 
-#         prev_cumul = 0
-#         #find datafile & Concat
-#         for j in stream:
-#             print(j)
-#             data = self.read_Datafile(j,prev_cumul)
-#             if type(data) == int:
-#                 flag = 1
-#                 print("ERROR Reading Data File. ERRORCODE :"+str(data))
-#                 break
-#             cumul += j['Chunk Size']
-#             outputfile += data
-#         if flag ==1 : 
-#             return -1
+        return rundata
+    def run2(self,rundata):
+        #Read Stream File -> Datafile --> Assemble Process
+        count = 1        
+        outputfile = b""
+        #get every stream file
+        stream = self.find_StreamFile(rundata)
+        #Exceptions
+        if type(stream) == int:
+            return -1
+        stream = sorted(stream,key=lambda d:d['Cumulative Chunk Size'])
+        filename = rundata['FileName'].replace(b'\x00\x00',b'').decode('utf16')
+        return stream,filename
+    def run3(self,stream,filename):
+        cumul = 0       
+        flag = 0 
+        prev_cumul = 0
+        #find datafile & Concat
+        for j in stream:
+            print(j)
+            data = self.read_Datafile(j,prev_cumul)
+            if type(data) == int:
+                flag = 1
+                print("ERROR Reading Data File. ERRORCODE :"+str(data))
+                break
+            cumul += j['Chunk Size']
+            outputfile += data
+        if flag ==1 : 
+            return -1
         
-#         #Create File
-#         filename = rundata['FileName'].replace(b'\x00\x00',b'').decode('utf16')
-#         if filename != "":
-#             fp = open("./RESULT/"+filename,'wb')
-#             count +=1
-#         else:
-#             fp = open('./RESULT/CARVEDFILE'+str(count),'wb')
-#             count +=1
-#         fp.write(outputfile)
-#         fp.close()
-#         return 1   
+        #Create File
+        filename = rundata['FileName'].replace(b'\x00\x00',b'').decode('utf16')
+        if filename != "":
+            fp = open("./RESULT/"+filename,'wb')
+            count +=1
+        else:
+            fp = open('./RESULT/CARVEDFILE'+str(count),'wb')
+            count +=1
+        fp.write(outputfile)
+        fp.close()
+        return 1   
     
 #     def Recover_datarun(self,filepath):
 #         #find datarun siganture
@@ -137,7 +135,7 @@ import e01parser as e01
 #                     print("Completed Searching...")
 #                     break
 #                 size = int.from_bytes(data[offset+0x04:offset+0x08],byteorder='little')
-#                 find_datarun.append(DS.parse_Reparse(data[offset:offset+size])) 
+#                 find_datarun.append(FS.parse_Reparse(data[offset:offset+size])) 
 #                 data = data[offset:]
 #             except:
 #                 print("Searching Error...!")
@@ -164,7 +162,7 @@ import e01parser as e01
 #         start = time.time()
 #         #Read Delete.log File
 #         fp = open(FILE_PATH+'00010000.00000002.delete.log','rb')
-#         res_tmp = DS.parse_DeleteLog(fp.read())
+#         res_tmp = FS.parse_DeleteLog(fp.read())
         
 #         #WhiteListing
 #         whitelist =[]
@@ -188,13 +186,13 @@ import e01parser as e01
 #                     print("Completed Searching...")
 #                     break
 #                 size = 0x70
-#                 stream_hdr = DS.parse_streamheader(data[offset:offset+size])
+#                 stream_hdr = FS.parse_streamheader(data[offset:offset+size])
 #                 num = (stream_hdr['SMAP Size'] - 8) // 0x40
 #                 #Read Stream Data
 #                 stream_data = []
 #                 for i in range(0,num):
 #                     stmd = data[offset+size+0x40*i:offset+size+0x40*(i+1)]
-#                     stream_data.append(DS.parse_streamdata(stmd))
+#                     stream_data.append(FS.parse_streamdata(stmd))
 #                 data = data[offset:]
 #             except:
 #                 print("Searching Error...!")
@@ -221,73 +219,73 @@ import e01parser as e01
 
 #         self.statistics(len(find_stream),count,end-start)
     
-#     def find_StreamFile(self,run):
-#         flag = 0
-#         for file in os.listdir(STREAMFILE_PATH):
-#             if ".ccc" not in file: continue
-#             else: 
-#                 stream = self.read_Streamfile(file,run)
-#                 flag =1
-#                 break
-#         if flag ==1 : return stream
-#         else: return -1
-#     def read_R(self,data):
-#         res = DS.parse_R(data)
+    def find_StreamFile(self,run):
+        flag = 0
+        for file in os.listdir(STREAMFILE_PATH):
+            if ".ccc" not in file: continue
+            else: 
+                stream = self.read_Streamfile(file,run)
+                flag =1
+                break
+        if flag ==1 : return stream
+        else: return -1
+    # def read_R(self,data):
+    #     res = FS.parse_R(data)
         
-#         offset = res['Entry Offset']
-#         Record = []
+    #     offset = res['Entry Offset']
+    #     Record = []
         
-#         for i in range(0,(res['Entry Size'] // 0x20 )):
-#             record_data = data[offset:offset+0x20]
-#             if record_data[0x10:0x14] != b"\x13\x00\x00\x80":
-#                 continue
-#             Record.append(DS.parse_Record(record_data))
-#             offset += 0x20
-#         return Record   
-#     def read_MFT_attribute(self,handle,offset):
-#         handle.seek(offset)
-#         data = handle.read(0x400)
-#         mft = DS.parse_MFT(data)
+    #     for i in range(0,(res['Entry Size'] // 0x20 )):
+    #         record_data = data[offset:offset+0x20]
+    #         if record_data[0x10:0x14] != b"\x13\x00\x00\x80":
+    #             continue
+    #         Record.append(FS.parse_Record(record_data))
+    #         offset += 0x20
+    #     return Record   
+    def read_MFT_attribute(self,handle,offset):
+        handle.seek(offset)
+        data = handle.read(0x400)
+        mft = FS.parse_MFT(data)
 
-#         res = DS.parse_Reparse(mft['$REPARSE_POINT'])
-#         filename= self.get_Filename(mft['$FILE_NAME'])
-#         res['FileName'] = filename
+        res = FS.parse_Reparse(mft['$REPARSE_POINT'])
+        filename= self.get_Filename(mft['$FILE_NAME'])
+        res['FileName'] = filename
 
-#         return res
+        return res
 #     def read_DataRun(self,handle,run):
 #         handle.seek(run[1]*0x1000)
 #         data = handle.read(CLUSTER_SIZE * run[0])
-#         return DS.parse_Dedup(data)
-#     def read_Streamfile(self,filename,record):
-#         try:
-#             fp = open(STREAMFILE_PATH+filename,'rb')
-#         except:
-#             return -1
-#         fp.seek(record['Stream file Offset'])
-#         data = fp.read(0x70)
-#         stream_hdr = DS.parse_streamheader(data)
+#         return FS.parse_Dedup(data)
+    def read_Streamfile(self,filename,record):
+        try:
+            fp = open(STREAMFILE_PATH+filename,'rb')
+        except:
+            return -1
+        fp.seek(record['Stream file Offset'])
+        data = fp.read(0x70)
+        stream_hdr = FS.parse_streamheader(data)
     
-#         #VALIDATION!!!
-#         if stream_hdr['Signature'] != b"\x43\x6B\x68\x72\x01\x03\x03\x01": return -1
-#         if stream_hdr['Stream Hash'] != record['Hash']: return -2
-#         if stream_hdr['SMAP Size'] != record['SMAP Size'] : return -3
-#         if stream_hdr['Hash Stream Number'] != record['Hash Stream number1']: return -4
+        #VALIDATION!!!
+        if stream_hdr['Signature'] != b"\x43\x6B\x68\x72\x01\x03\x03\x01": return -1
+        if stream_hdr['Stream Hash'] != record['Hash']: return -2
+        if stream_hdr['SMAP Size'] != record['SMAP Size'] : return -3
+        if stream_hdr['Hash Stream Number'] != record['Hash Stream number1']: return -4
 
-#         #Calculate SMAP
-#         num = (stream_hdr['SMAP Size'] - 8) // 0x40
-#         #Read Stream Data
-#         stream_data = []
-#         for i in range(0,num):
-#             fp.seek(record['Stream file Offset']+0x70+(0x40 * i))
-#             stmd = fp.read(0x40)
-#             stream_data.append(DS.parse_streamdata(stmd))
+        #Calculate SMAP
+        num = (stream_hdr['SMAP Size'] - 8) // 0x40
+        #Read Stream Data
+        stream_data = []
+        for i in range(0,num):
+            fp.seek(record['Stream file Offset']+0x70+(0x40 * i))
+            stmd = fp.read(0x40)
+            stream_data.append(FS.parse_streamdata(stmd))
         
-#         return stream_data
+        return stream_data
 #     def read_Datafile(self,stream,prev_cumul):
 #         fp = open(DATAFILE_PATH+stream['Data File Name'],'rb')
 #         fp.seek(stream['Data Offset'])
 #         data = fp.read(0x48)
-#         chunk_info = DS.parse_Datachunk(data)
+#         chunk_info = FS.parse_Datachunk(data)
         
 #         #VALIDATION!!!        
 #         if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
@@ -299,10 +297,10 @@ import e01parser as e01
 #         fp.close()
 
 #         return chunk_data
-#     def get_Filename(self,attr):
-#         namelen = attr[0x50]
-#         name = attr[0x5A:]
-#         return name
+    def get_Filename(self,attr):
+        namelen = attr[0x50]
+        name = attr[0x5A:]
+        return name
 #     def search_engine(self,data,word):
 #         lst = re.search(word,data)
 #         if lst == None:
@@ -359,34 +357,88 @@ def start():
 
     return args
 
-class Filesystem_E01:
-    def get_R(self,handle): 
-        # input : E01 handle, 
-        # output : $R binary
-        return 1
-    def get_MFT(self,mft,size, file): 
-        # input : mft offset, mft size, filename 
-        # output : $MFT binary
-        return 1
-    def find_file_in_MFT(self,offset,size,file):
-        # input : mft offset, mft size, filename 
-        # output : $MFT binary
-        return 1
-
 class Assemble:
     def __init__(self,e01path,odir):
         self.e01path = e01path
         self.outPath = odir
- 
-        self.e01handle = ""
+        self.fs = e01.E01_handler(self.e01path)
         
     def assemble_all(self):
-        print(1)
+        #Read $R file
+        r_data = self.fs.readADSFile(self.fs.fsobj,"/$Extend/$Reparse","$R")
+        r_meta = FS.parse_R(r_data)
+        
+        offset = r_meta['Entry Offset']
+        r_record = []
+        for i in range(0,(r_meta['Entry Size'] // 0x20 )):
+            record_data = r_data[offset:offset+0x20]
+            if record_data[0x10:0x14] == b"\x13\x00\x00\x80":
+                r_record.append(FS.parse_Record(record_data))
+            offset += 0x20
+        
+        print(r_record[0])
+        #find&parse file in $MFT entry
+        MFThandle = self.fs.fsobj.open('/$MFT')
+        entries = []
+        for rec in r_record:
+            if rec['Reparse Tag'] == b"\x13\x00\x00\x80":
+                entries.append(FS.parse_MFT(MFThandle,rec['MFT address']))
+        print(entries[0])
+        
+        #get&parse RunList
+        rundatas=[]
+        for entry in entries:
+            rundata = FS.parse_DataRun(self.fs.raw_handle,entry['RUN1'])
+            rundata['FileName'] = entry['FileName']
+            rundatas.append(rundata)    
+        print(len(rundatas))
+        
+        #get&parse Stream
+        streams_list = {}
+        for rundata in rundatas:
+            stream_dir = self.fs.fsobj.open_dir(path="/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Stream/")
+            count = 0
+            for fobj in stream_dir:
+                count +=1
+                if count == stream_dir.size:
+                        print("  [+] File with Error : "+rundata['FileName'])
+                if bytes(".ccc",encoding='utf8') not in fobj.info.name.name:
+                    continue
+                streamfile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Stream/"+fobj.info.name.name.decode('utf8'))
+                streams,filename = FS.find_streamfile(streamfile,rundata) 
+                if type(streams) == list: 
+                    streams_list[filename] = streams
+                    break
+                
+        #get Data
+        for name,_streams in streams_list.items():
+            cumul = 0       
+            flag = 0 
+            prev_cumul = 0
+            fp = open("\\".join([self.outPath,"AllDedupFiles",name]))
+            for _stream in _streams:
+                datafile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Data/"+_stream['Data File Name'])
+                data = FS.parse_datafile(datafile,_stream)
+                if type(data) == int:
+                    flag = 1
+                    print("ERROR Reading Data File. ERRORCODE :"+str(data))
+                    break
+                cumul += _stream['Chunk Size']
+                outputfile += data
+        if flag ==1 : 
+            return -1
+     
+        
+
+
+        #write
+        
+
     def assemble_file(self,filelist):
         for file in filelist:
             #find&parse file in $MFT entry
-            offset,size = Filesystem_E01.get_MFT()
-            Filesystem_E01.find_file_in_MFT(offset,size, file)
+            offset,size = e01.E01_handler.get_MFT()
+            e01.E01_handler.find_file_in_MFT(offset,size, file)
 
             #get&parse RunList
 
@@ -414,7 +466,7 @@ if __name__ == "__main__":
             os.mkdir(outputDir)
         
         #parse all
-        a = Assemble(args.input)
+        a = Assemble(args.input,args.outdir)
         a.assemble_all()
         
     if args.filename != None:

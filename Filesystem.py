@@ -3,8 +3,9 @@ from sys import byteorder
 
 END_SIGNATURE = b"\xff\xff\xff\xff"
 MFT_RECORD_SIZE = 0x400
+CLUSTER_SIZE = 0x200
 
-def parse_MFT(data):
+def parse_MFTattr(data):
     ret = {}
     ret['Signature'] = data[:0x04]
     ret['Seq Num'] = data[0x10:0x12]
@@ -178,6 +179,53 @@ def parse_DeleteLog(dat):
         offset += 0x28
     ret['Records'] = records
     return ret 
+
+def parse_MFT(handle,offset):
+    mftattr = parse_MFTattr(handle.read_random(offset,0x400))
+    res = parse_Reparse(mftattr['$REPARSE_POINT'])
+    try:
+        res['FileName'] = mftattr['$FILE_NAME'][0x5A:].decode('utf8')
+    except:
+        res['FileName'] = mftattr['$FILE_NAME'][0x5A:].decode('utf16')
+
+    return res
+def parse_DataRun(handle,run):
+    data = handle.read(run[1]*0x1000,CLUSTER_SIZE * run[0])
+    return parse_Dedup(data)
+def parse_datafile(handle,stream):
+    data = handle.read_random(stream['Data Offset'],0x48)
+    chunk_info = parse_Datachunk(data)
+    
+    #VALIDATION!!!        
+    if chunk_info['Chunk Number'] != stream['Chunk Number']: return -1
+    if chunk_info['Data Hash'] != stream['Hash']: return -2
+    if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
+    #CUMULATIVE CHUNKSIZE CHECK!!
+    chunk_data = handle.read_random(stream['Data Offset']+0x58,stream['Chunk Size'])
+
+    return chunk_data
+
+def find_streamfile(handle,record):
+    try:
+        data = handle.read_random(record['Stream file Offset'],0x70)
+    except:
+        return 0,None
+    stream_hdr = parse_streamheader(data)
+
+    #VALIDATION!!!
+    if stream_hdr['Signature'] != b"\x43\x6B\x68\x72\x01\x03\x03\x01": return -1,None
+    if stream_hdr['Stream Hash'] != record['Hash']: return -2,None
+    if stream_hdr['SMAP Size'] != record['SMAP Size'] : return -3,None
+    if stream_hdr['Hash Stream Number'] != record['Hash Stream number1']: return -4,None
+    #Calculate SMAP
+    num = (stream_hdr['SMAP Size'] - 8) // 0x40
+    #Read Stream Data
+    stream_data = []
+    for i in range(0,num):
+        stmd = handle.read_random(record['Stream file Offset']+0x70+(0x40 * i),0x40)
+        stream_data.append(parse_streamdata(stmd))
+    
+    return stream_data,record['FileName']
 
 
 def Find_MFT_Record(key_ref:bytes):
