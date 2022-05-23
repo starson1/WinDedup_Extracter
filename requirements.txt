@@ -1,0 +1,4 @@
+libewf-python==20201230
+pyfiglet==0.8.post1
+pytsk3==20211111
+tqdm==4.63.1
