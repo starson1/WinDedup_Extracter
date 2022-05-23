@@ -8,10 +8,11 @@ import os
 
 import Filesystem as FS
 import e01parser as e01
+
     
 def exit(msg):
     for m in msg:
-        print("\n  [+] "+msg)
+        print("\n  [+] "+m)
     input("\nPress Any Key To Exit.")
     sys.exit()
 
@@ -164,14 +165,16 @@ class Assemble:
         #find&parse file in $MFT entry
         MFThandle = self.fs.fsobj.open('/$MFT')
         print("  [+] Searching File...")
+        i = 0
         while(True):
             print("     ("+"-"*((int(time.time()*5))%20)+"*"+"-"*(20-(int(time.time()*5)%20))+")",end="\r")
             try:
                 r_record = FS.parse_MFTattr(MFThandle.read_random(i*0x400,0x400))
             except:
-                self.end = time.time()
-                return -1
+                i +=1
+                continue
             if r_record == None:
+                i += 1
                 continue
             if "$FILE_NAME" in r_record.keys():
                 try:
@@ -181,6 +184,7 @@ class Assemble:
                 if filename == file:
                     r_record['FileName'] = filename
                     break
+            i += 1
         if "$REPARSE_POINT" not in r_record.keys():
             self.end = time.time()
             return -1
@@ -242,7 +246,6 @@ class Recover:
 
 if __name__ == "__main__":
     args = start()
-
     #Assemble - Extract
     if args.all == True:
         #create output dir
