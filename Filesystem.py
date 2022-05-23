@@ -1,5 +1,4 @@
-from datetime import datetime
-from sys import byteorder
+import LZ77
 
 END_SIGNATURE = b"\xff\xff\xff\xff"
 MFT_RECORD_SIZE = 0x400
@@ -203,9 +202,11 @@ def parse_datafile(handle,stream):
     if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
     
     chunk_data = handle.read_random(stream['Data Offset']+0x5C,chunk_info['Chunk Size'])
+    prev_chunk = chunk_data
     if chunk_info['Compression Flag'] ==2:
         #LZ77 inflate
-        chunk_data  = lz77_inflate(chunk_data)
+        compressor = LZ77.LZ77Compressor()
+        chunk_data  = compressor.decompress(chunk_data)
 
     return chunk_data
 def find_streamfile(handle,record):
@@ -231,8 +232,3 @@ def find_streamfile(handle,record):
     return stream_data,record['FileName']
 def Find_MFT_Record(key_ref:bytes):
         return int.from_bytes(key_ref,byteorder='little') * MFT_RECORD_SIZE
-
-
-def lz77_inflate(deflated):
-    inflated = deflated
-    return inflated
