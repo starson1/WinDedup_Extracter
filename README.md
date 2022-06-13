@@ -9,9 +9,38 @@ Parsing files from Deduplicated volumes. It can also recover deleted files from 
     git clone https://github.com/starson1/WinDedup_Extracter
 
 ## Usage
-    python windedup.py [options] imagefile
-    ex) python main.py -m 1 test.001
-Needs 
+    -------------------------------------------------------------------------------
+    ____           __            ______     __                  __
+   / __ \___  ____/ /_  ______  / ____/  __/ /__________ ______/ /_____  _____
+  / / / / _ \/ __  / / / / __ \/ __/ | |/_/ __/ ___/ __ `/ ___/ __/ __ \/ ___/
+ / /_/ /  __/ /_/ / /_/ / /_/ / /____>  </ /_/ /  / /_/ / /__/ /_/ /_/ / /
+/_____/\___/\__,_/\__,_/ .___/_____/_/|_|\__/_/   \__,_/\___/\__/\____/_/
+                      /_/
+
+
+Version : 20220519
+Made By : vared.kr
+Conatact : starson1234[at]]gmail[dot]com
+Download : https://github.com/starson1/WinDedup_Extracter_NEW
+-------------------------------------------------------------------------------
+usage: ParseDedup.py [-h] -i INPUT -o OUTDIR [-a] [-f [FILENAME ...]] [-c] [-r] [-s]
+
+Windows Server Deuplication Extractor/Recovery
+
+options:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Input File Path (E01 file)
+  -o OUTDIR, --outdir OUTDIR
+                        Output Directory for Results
+  -a, --all             Extract All Deduplicated Files
+  -f [FILENAME ...], --filename [FILENAME ...]
+                        Extract By Filename (Multi-Input Allowed)
+  -c, --carve           Carve Searching Unallocated Area (Unsupported)
+  -r, --runlist         Recovery Using Runlist Structure (Unallocated Area)
+  -s, --stream          Recovery Using Stema File (Allocated Area)
+
+## Needs 
 
   1) E01 image file
   
