@@ -1,9 +1,6 @@
-from inspect import getfile
 import pyewf
 import pytsk3
-import re
-import os
-import sys
+
 
 class ewf_Img_Info(pytsk3.Img_Info):
     def __init__(self, ewf_handle):
