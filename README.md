@@ -9,20 +9,6 @@ Parsing files from Deduplicated volumes. It can also recover deleted files from 
     git clone https://github.com/starson1/WinDedup_Extracter
 
 ## Usage
-    -------------------------------------------------------------------------------
-    ____           __            ______     __                  __
-   / __ \___  ____/ /_  ______  / ____/  __/ /__________ ______/ /_____  _____
-  / / / / _ \/ __  / / / / __ \/ __/ | |/_/ __/ ___/ __ `/ ___/ __/ __ \/ ___/
- / /_/ /  __/ /_/ / /_/ / /_/ / /____>  </ /_/ /  / /_/ / /__/ /_/ /_/ / /
-/_____/\___/\__,_/\__,_/ .___/_____/_/|_|\__/_/   \__,_/\___/\__/\____/_/
-                      /_/
-
-
-Version : 20220519
-Made By : vared.kr
-Conatact : starson1234[at]]gmail[dot]com
-Download : https://github.com/starson1/WinDedup_Extracter_NEW
--------------------------------------------------------------------------------
 usage: ParseDedup.py [-h] -i INPUT -o OUTDIR [-a] [-f [FILENAME ...]] [-c] [-r] [-s]
 
 Windows Server Deuplication Extractor/Recovery
