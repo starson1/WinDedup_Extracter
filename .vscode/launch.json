@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args" : ["-i","C:\\Users\\stars\\Desktop\\DeleteTest.001","-o","."]
+            "args" : ["-i","F:\\TestSetImg100GB.E01","-o","F:\\TEMP\\Test","-f","Chapter6.pdf"]
         }
     ]
 }
