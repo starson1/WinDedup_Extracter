@@ -204,9 +204,12 @@ def parse_datafile(handle,stream):
     chunk_data = handle.read_random(stream['Data Offset']+0x5C,chunk_info['Chunk Size'])
     prev_chunk = chunk_data
     if chunk_info['Compression Flag'] ==2:
+        fp = open(stream['Cumulative Chunk Size'],"wb")
+        fp.write(chunk_data)
+        fp.close()
         #LZ77 inflate
-        compressor = LZ77.LZ77Compressor()
-        chunk_data  = compressor.decompress(chunk_data)
+        #compressor = LZ77.LZ77Compressor()
+        #chunk_data  = compressor.decompress(chunk_data)
 
     return chunk_data
 def find_streamfile(handle,record):
