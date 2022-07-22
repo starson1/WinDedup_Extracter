@@ -54,7 +54,10 @@ def start():
     #check output directory
     args.outdir = os.path.abspath(args.outdir)
     if os.path.isdir(args.outdir)==False:
-        os.makedirs(args.outdir)
+        try:
+            os.makedirs(args.outdir)
+        except:
+            exit(["Invalid Output Path..."])
 
     #check for options
     if (args.all == False) and (args.filename == None) and (args.carve == False) and (args.runlist == False) and (args.stream == False):
@@ -241,8 +244,95 @@ class Assemble:
         self.end = time.time()
         return 1
 class Recover:
-    def __init__(self):
-        self.e01path=""
+    def __init__(self,e01path,odir):
+        self.e01path= e01path
+        self.outPath = odir
+        self.fs = e01.E01_handler(self.e01path)
+        self.total =0
+        self.start = 0.0
+        self.end = 0.0
+    def carve_DataRun(self):
+        self.start = time.time()
+        MFThandle = self.fs.fsobj.open('/$MFT')
+        print("  [+] Searching File...")
+        
+        deleted_entry = []
+        i = 0
+        while(i*0x400 < MFThandle.info.meta.size):
+            print("     ("+"-"*((int(time.time()*5))%20)+"*"+"-"*(20-(int(time.time()*5)%20))+")",end="\r")
+            try:
+                r_record = FS.parse_MFTattr(MFThandle.read_random(i*0x400,0x400))
+                if r_record == None:
+                    i+=1
+                    continue
+            except:
+                i +=1
+                continue
+            if "$REPARSE_POINT" in r_record.keys():
+                if r_record['Flags'] == 0:
+                    if r_record == None:
+                        i += 1
+                        continue
+                    if "$FILE_NAME" in r_record.keys():
+                        try:
+                            filename = str(r_record['$FILE_NAME'][0x5A:].decode('utf8').replace(chr(0),""))
+                        except:
+                            filename = str(r_record['$FILE_NAME'][0x5A:].decode('utf16').replace(chr(0),""))
+                        deleted_entry.append(r_record)
+            i += 1
+        for r_record in deleted_entry:
+            #get&parse RunList
+            print("  [+] Parsing MFT & Run List.")
+            entry = FS.parse_Reparse(r_record['$REPARSE_POINT'])
+            entry['FileName'] = r_record["FileName"]
+            rundata = FS.parse_DataRun(self.fs.raw_handle,entry['RUN1'])
+            rundata['FileName'] = entry['FileName']
+
+            #get&parse Stream
+            print("  [+] Finding Stream File")
+            streams_list = {}
+            stream_dir = self.fs.fsobj.open_dir(path="/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Stream/")
+            count = 0
+            for fobj in stream_dir:
+                count +=1
+                if count == stream_dir.size:
+                        print("     [-] File with Error : "+rundata['FileName'])
+                if bytes(".ccc",encoding='utf8') not in fobj.info.name.name:
+                    continue
+                streamfile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Stream/"+fobj.info.name.name.decode('utf8'))
+                streams,filename = FS.find_streamfile(streamfile,rundata) 
+                if type(streams) == list: 
+                    streams_list[filename] = streams
+                    break
+                
+            #get Data
+            print("  [+] Reassembling Data.")
+            for name,_streams in streams_list.items():
+                cumul = 0    
+                fp = open("\\".join([self.outPath,name]),'wb')
+                for _stream in _streams:
+                    print("     ("+"-"*((int(time.time()*5))%20)+"*"+"-"*(20-(int(time.time()*5)%20))+")",end="\r")
+                    datafile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Data/"+_stream['Data File Name'])
+                    data = FS.parse_datafile(datafile,_stream)
+                    if type(data) == int:
+                        flag = 1
+                        print("     [-] ERROR Reading Data File. ERRORCODE :"+str(data))
+                        break
+                    
+                    #Cumulative ChunkSize Check!
+                    cumul += len(data)
+                    if cumul != _stream['Cumulative Chunk Size']:
+                        print("     [-] Warning : INVALID Cumulative Chunk Size")
+                        print("     [-] Filename : "+name)
+                        fp.close()
+                        os.remove("\\".join([self.outPath,name]))
+                        break
+                    fp.write(data)
+                fp.close()
+        self.end = time.time()
+
+
+
 
 if __name__ == "__main__":
     args = start()
@@ -285,9 +375,16 @@ if __name__ == "__main__":
     
     #Recovery
     if args.carve == True:
-        print("TBD carve")
+        print("UNSUPPORTED")
     if args.runlist == True:
-        print("TBD runlist")
+        #create output dir
+        outputDir = "\\".join([args.outdir,'Carved_By_DataRun'])
+        if os.path.exists(outputDir)==False:
+            os.mkdir(outputDir)
+        a = Recover(args.input,args.outdir)
+        success = a.carve_DataRun()
+        print("\n  [+] Finished.")
+        dedup_statistic(success,a.total,a.end-a.start)    
     if args.stream == True:
         print("TBD ")
     

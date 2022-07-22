@@ -3,3 +3,4 @@
 __pycache__/Dedup_Structure.cpython-310.pyc
 *.pyc
 lz77compressed
+.vscode/launch.json

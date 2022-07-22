@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args" : ["-i","F:\\TestSetImg100GB.E01","-o","F:\\TEMP\\Test","-f","Chapter6.pdf"]
+            "args" : ["-i","D:\\SAMPLE.E01","-o","D:\\TEMP\\Test","-r"]
         }
     ]
 }

@@ -10,6 +10,7 @@ def parse_MFTattr(data):
     if data[:0x05] != b"FILE0": 
         return None
     ret['Seq Num'] = data[0x10:0x12]
+    ret['Flags'] = int.from_bytes(data[0x16:0x18], byteorder='little')
     ret['Offset to Attribute'] = int.from_bytes(data[0x14:0x16],byteorder='little')
     ret['Entry Number'] = int.from_bytes(data[0x2C:0x30],byteorder='little')
 
