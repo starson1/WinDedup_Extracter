@@ -444,7 +444,7 @@ class Recover:
                     count +=1
                     #write file metadata
         self.end = time.time()
-        return 1
+        return count 
 
 
 if __name__ == "__main__":
