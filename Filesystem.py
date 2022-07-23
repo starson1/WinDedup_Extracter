@@ -134,6 +134,8 @@ def parse_streamheader(dat):
 def parse_streamdata(dat):
     ret = {}
     ret['Chunk Number'] = int.from_bytes(dat[0x00:0x04],byteorder='little')
+    if ret['Chunk Number'] == 0:
+        return None
     ret['Data File Name'] = dat[0x04:0x08][::-1].hex() + "." + dat[0x0C:0x10][::-1].hex()+".ccc"
     ret['Data Offset'] = int.from_bytes(dat[0x08:0x0C],byteorder='little')
     ret['Cumulative Chunk Size'] = int.from_bytes(dat[0x10:0x14],byteorder='little')
@@ -154,6 +156,10 @@ def parse_R(dat):
     ret['Signature'] = dat[0x00:0x04]
     ret['Entry Offset'] = int.from_bytes(dat[0x18:0x1C],byteorder='little') + 0x18
     ret['Entry Size'] = (int.from_bytes(dat[0x1C:0x20],byteorder='little')) - 0x38
+    
+    if ret['Signature'] == b"\x00\x00\x00\x00":
+        ret['Entry Offset'] = 0x20
+        ret['Entry Size'] = len(dat)-0x20
 
     return ret
 def parse_Record(dat):
@@ -205,14 +211,36 @@ def parse_datafile(handle,stream):
     chunk_data = handle.read_random(stream['Data Offset']+0x5C,chunk_info['Chunk Size'])
     prev_chunk = chunk_data
     if chunk_info['Compression Flag'] ==2:
-        fp = open(stream['Cumulative Chunk Size'],"wb")
-        fp.write(chunk_data)
-        fp.close()
+        TBD=1
         #LZ77 inflate
         #compressor = LZ77.LZ77Compressor()
         #chunk_data  = compressor.decompress(chunk_data)
 
     return chunk_data
+def get_AllstreamObj(handle):
+    res= {}
+    i = 0
+    while(i < handle.info.meta.size):
+        sign = handle.read_random(i,8)
+        if sign == b"\x43\x6B\x68\x72\x01\x03\x03\x01":
+            try:
+                header = handle.read_random(i,0x70)
+            except:
+                return 0,None
+            stream_hdr = parse_streamheader(header)
+            #Calculate SMAP
+            num = (stream_hdr['SMAP Size'] - 8) // 0x40
+            #Read Stream Data
+            stream_data = []
+            for j in range(0,num):
+                stmd = handle.read_random(i+0x70+(0x40 * j),0x40)
+                parsed = parse_streamdata(stmd)
+                if parsed == None: break
+                stream_data.append(parsed)
+            if len(stream_data) != 0: res[str(i)]=(stream_data)
+        i += 0x10
+    return res
+
 def find_streamfile(handle,record):
     try:
         header = handle.read_random(record['Stream file Offset'],0x70)
@@ -231,7 +259,8 @@ def find_streamfile(handle,record):
     stream_data = []
     for i in range(0,num):
         stmd = handle.read_random(record['Stream file Offset']+0x70+(0x40 * i),0x40)
-        stream_data.append(parse_streamdata(stmd))
+        parsed = parse_streamdata(stmd)
+        stream_data.append(parsed)
     
     return stream_data,record['FileName']
 def Find_MFT_Record(key_ref:bytes):

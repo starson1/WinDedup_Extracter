@@ -89,7 +89,12 @@ class E01_handler:
             offset+=len(buf)
         return data
 
-    def findfile(self,filename):
-        return None
-
-
+    def listdir(self,filepath):
+        filelist = self.fsobj.open(filepath).as_directory()
+        res = []
+        for file_ in filelist:
+            if file_.info.name.name in [b'.',b'..']:
+                continue
+            res.append(file_.info.name.name)
+        return res
+            
