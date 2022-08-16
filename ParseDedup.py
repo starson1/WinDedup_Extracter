@@ -30,9 +30,9 @@ def start():
     print("-------------------------------------------------------------------------------")
     print(f.renderText('DedupExtractor'))
     print("")
-    print("Version : 20220519")
+    print("Version : 20220817")
     print("Made By : vared.kr")
-    print("Conatact : starson1234[at]]gmail[dot]com")
+    print("Contact : starson1234[at]]gmail[dot]com")
     print("Download : https://github.com/starson1/WinDedup_Extracter_NEW")
     print("-------------------------------------------------------------------------------")
 
