@@ -208,14 +208,22 @@ def parse_datafile(handle,stream):
     if chunk_info['Data Hash'] != stream['Hash']: return -2
     if chunk_info['Chunk Size'] !=stream['Chunk Size']: return -3
     
-    chunk_data = handle.read_random(stream['Data Offset']+0x5C,chunk_info['Chunk Size'])
+    chunk_data = handle.read_random(stream['Data Offset']+0x5C-0x04,chunk_info['Chunk Size'])
     prev_chunk = chunk_data
+<<<<<<< Updated upstream
     if chunk_info['Compression Flag'] ==2:
         TBD=1
+=======
+    if chunk_info['Compression Flag'] == 2:
+        chunk_data = chunk_data.replace(b"\x00\x00\x00\x00",b"")
+>>>>>>> Stashed changes
         #LZ77 inflate
         #compressor = LZ77.LZ77Compressor()
         #chunk_data  = compressor.decompress(chunk_data)
+        return chunk_data,1
+        
 
+<<<<<<< Updated upstream
     return chunk_data
 def get_AllstreamObj(handle):
     res= {}
@@ -241,6 +249,9 @@ def get_AllstreamObj(handle):
         i += 0x10
     return res
 
+=======
+    return chunk_data,0
+>>>>>>> Stashed changes
 def find_streamfile(handle,record):
     try:
         header = handle.read_random(record['Stream file Offset'],0x70)

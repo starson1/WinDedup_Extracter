@@ -20,7 +20,8 @@ def dedup_statistic(success,all,t):
     print("")
     print(f"  [+] Detected Files : %d"%all)
     print(f"  [+] Extracted Files : %d"%success)
-    print(f"  [+] Extraction Rate(%%) : %.2f%%"%(100*success/all))
+    if all == 0: print(f"  [+] Extraction Rate(%%) : --%"%(100*success/all))
+    else: print(f"  [+] Extraction Rate(%%) : %.2f%%"%(100*success/all))
     print(f"  [+] Elapsed Time : %.2fs"%(t))
     print("")
 
@@ -137,12 +138,13 @@ class Assemble:
         print("  [+] Reassembling Data Files.")
         count =0
         for name,_streams in streams_list.items():
-            cumul = 0       
+            cumul = 0      
+            comp_count = 0     
             fp = open("\\".join([self.outPath,name.replace(chr(0),"")]),'wb')
             for _stream in _streams:
                 datafile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Data/"+_stream['Data File Name'])
-                
-                data = FS.parse_datafile(datafile,_stream)
+                data,comp = FS.parse_datafile(datafile,_stream)
+                comp_count += comp
                 if type(data) == int:
                     flag = 1
                     print("ERROR Reading Data File. ERRORCODE :"+str(data))
@@ -150,15 +152,17 @@ class Assemble:
 
                 #Cumulative ChunkSize Check!
                 cumul += len(data)
-                if cumul != _stream['Cumulative Chunk Size']:
-                    print("     [-] Warning : INVALID Cumulative Chunk Size")
-                    print("     [-] File name : "+str(name.replace(chr(0),"")))
-                    fp.close()
-                    os.remove("\\".join([self.outPath,name.replace(chr(0),"")]))
-                    break
+                if comp != 0:
+                    if cumul != _stream['Cumulative Chunk Size']:
+                        print("     [-] Warning : INVALID Cumulative Chunk Size")
+                        print("     [-] Filename : "+name)
+                        fp.close()
+                        os.remove("\\".join([self.outPath,name]))
+                        break
                 fp.write(data)
             fp.close()
-            count +=1
+            print(f"     [-] Warning : Sparse Data Included. {comp_count}/{len(_streams)}")
+        
             #write file metadata
         self.end = time.time()
         return count
@@ -219,27 +223,31 @@ class Assemble:
         #get Data
         print("  [+] Reassembling Data.")
         for name,_streams in streams_list.items():
-            cumul = 0    
+            cumul = 0
+            comp_count = 0    
             fp = open("\\".join([self.outPath,name]),'wb')
             for _stream in _streams:
                 print("     ("+"-"*((int(time.time()*5))%20)+"*"+"-"*(20-(int(time.time()*5)%20))+")",end="\r")
                 datafile = self.fs.fsobj.open("/System Volume Information/Dedup/ChunkStore/{"+rundata['Chunkstore UID']+"}.ddp/Data/"+_stream['Data File Name'])
-                data = FS.parse_datafile(datafile,_stream)
+                data,comp = FS.parse_datafile(datafile,_stream)
+                comp_count += comp
                 if type(data) == int:
-                    flag = 1
+                    
                     print("     [-] ERROR Reading Data File. ERRORCODE :"+str(data))
                     break
                 
                 #Cumulative ChunkSize Check!
                 cumul += len(data)
-                if cumul != _stream['Cumulative Chunk Size']:
-                    print("     [-] Warning : INVALID Cumulative Chunk Size")
-                    print("     [-] Filename : "+name)
-                    fp.close()
-                    os.remove("\\".join([self.outPath,name]))
-                    break
+                if comp != 0:
+                    if cumul != _stream['Cumulative Chunk Size']:
+                        print("     [-] Warning : INVALID Cumulative Chunk Size")
+                        print("     [-] Filename : "+name)
+                        fp.close()
+                        os.remove("\\".join([self.outPath,name]))
+                        break
                 fp.write(data)
             fp.close()
+            print(f"     [-] Warning : Sparse Data Included. {comp_count}/{len(_streams)}")
         
         self.end = time.time()
         return 1
@@ -497,6 +505,7 @@ if __name__ == "__main__":
         print("\n  [+] Finished.")
         dedup_statistic(success,a.total,a.end-a.start)    
     if args.stream == True:
+<<<<<<< Updated upstream
         #create output dir
         outputDir = "\\".join([args.outdir,'Carved_By_DataRun'])
         if os.path.exists(outputDir)==False:
@@ -505,3 +514,7 @@ if __name__ == "__main__":
         success = a.carve_Stream()
         print("\n  [+] Finished.")
         dedup_statistic(success,a.total,a.end-a.start)    
+=======
+        print("TBD ")
+    
+>>>>>>> Stashed changes
