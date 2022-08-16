@@ -505,7 +505,6 @@ if __name__ == "__main__":
         print("\n  [+] Finished.")
         dedup_statistic(success,a.total,a.end-a.start)    
     if args.stream == True:
-<<<<<<< Updated upstream
         #create output dir
         outputDir = "\\".join([args.outdir,'Carved_By_DataRun'])
         if os.path.exists(outputDir)==False:
@@ -514,7 +513,3 @@ if __name__ == "__main__":
         success = a.carve_Stream()
         print("\n  [+] Finished.")
         dedup_statistic(success,a.total,a.end-a.start)    
-=======
-        print("TBD ")
-    
->>>>>>> Stashed changes

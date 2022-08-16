@@ -7,11 +7,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-<<<<<<< Updated upstream
-            "args" : ["-i","D:\\SAMPLE.E01","-o","D:\\TEMP\\Test","-s"]
-=======
             "args" : ["-i","C:\\Users\\stars\\Desktop\\SAMPLE.E01","-o","C:\\Users\\stars\\Desktop\\Test","-a"]
->>>>>>> Stashed changes
         }
     ]
 }
