@@ -152,16 +152,19 @@ class Assemble:
 
                 #Cumulative ChunkSize Check!
                 cumul += len(data)
-                if comp != 0:
+                if comp_count == 0:
                     if cumul != _stream['Cumulative Chunk Size']:
                         print("     [-] Warning : INVALID Cumulative Chunk Size")
                         print("     [-] Filename : "+name)
                         fp.close()
-                        os.remove("\\".join([self.outPath,name]))
+                        os.remove("\\".join([self.outPath,name.replace("\x00","")]))
                         break
                 fp.write(data)
+            count +=1
             fp.close()
             print(f"     [-] Warning : Sparse Data Included. {comp_count}/{len(_streams)}")
+            print("     [-] Filename : "+name)
+            print("")
         
             #write file metadata
         self.end = time.time()
@@ -465,7 +468,7 @@ if __name__ == "__main__":
             os.mkdir(outputDir)
         
         #parse all
-        a = Assemble(args.input,args.outdir)
+        a = Assemble(args.input,outputDir)
         success = a.assemble_all()
         print("\n  [+] Finished.")
         dedup_statistic(success,a.total,a.end-a.start)    
