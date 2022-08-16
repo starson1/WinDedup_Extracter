@@ -1,4 +1,4 @@
-# WinDedup_Extracter_NEW
+# WinDedup_Extracter
 
 
 Parsing files from Deduplicated volumes. It can also recover deleted files from NTFS Filesystem that were deduplicated.
