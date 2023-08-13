@@ -245,9 +245,9 @@ class Assemble:
                     if cumul != _stream['Cumulative Chunk Size']:
                         print("     [-] Warning : INVALID Cumulative Chunk Size")
                         print("     [-] Filename : "+name)
-                        fp.close()
-                        os.remove("\\".join([self.outPath,name]))
-                        break
+                        # fp.close()
+                        # os.remove("\\".join([self.outPath,name]))
+                        # break
                 fp.write(data)
             fp.close()
             print(f"     [-] Warning : Sparse Data Included. {comp_count}/{len(_streams)}")

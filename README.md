@@ -49,5 +49,5 @@ Parsing files from Deduplicated volumes. It can also recover deleted files from 
 
 ## Documentation on Windows Deduplication
 
-- [**TBA**](url): Paper where WinDedup is presented.
+- [**Data reconstruction and recovery of deduplicated files having non-resident attributes in NTFS volume**](https://www.sciencedirect.com/science/article/pii/S266628172300080X): Paper where WinDedup_Extracter is presented.
 - [**Forensic analysis of deduplication file systems**](https://www.sciencedirect.com/science/article/pii/S1742287617300324)
